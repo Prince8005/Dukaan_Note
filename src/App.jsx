@@ -3,11 +3,6 @@ import './App.css'
 
 const STORAGE_KEY = 'dukaan-note-transactions'
 
-const mockDraft = [
-  { item: 'Wheat flour', quantity: 2, amount: 110, type: 'Sale' },
-  { item: 'Sugar (1 kg)', quantity: 1, amount: 48, type: 'Purchase' },
-]
-
 const exampleNotes = [
   'Sold 2 notebooks for ₹80',
   'Ramesh ko 2 kilo chawal 120 rupaye mein diya',
@@ -92,6 +87,7 @@ function App() {
   const [draft, setDraft] = useState([])
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const [storageNotice, setStorageNotice] = useState(initialData.message)
 
   const totalFor = (type) =>
@@ -99,18 +95,43 @@ function App() {
       .filter((transaction) => transaction.type === type)
       .reduce((total, transaction) => total + transaction.amount, 0)
 
-  const createDraft = () => {
-    setError('')
-    setMessage('')
-    if (draft.length) {
-      setError('Review, confirm, or discard the current draft before loading another sample.')
+  const createDraft = async () => {
+    if (!note.trim()) {
+      setError('Please write or select a note first.')
       return
     }
 
-    setDraft(mockDraft.map((transaction, index) => ({
-      ...transaction,
-      id: `${Date.now()}-${index}`,
-    })))
+    if (draft.length) {
+      setError('Review, confirm, or discard the current draft before generating a new one.')
+      return
+    }
+
+    setIsLoading(true)
+    setMessage('')
+    setError('')
+    try {
+      const response = await fetch('http://localhost:5000/api/parse-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note }),
+      })
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Could not connect to the parsing server. Ensure the backend is running.')
+        return
+      }
+
+      setDraft(result.transactions.map((transaction, index) => ({
+        ...transaction,
+        id: `${Date.now()}-${index}`,
+      })))
+      setMessage(`Draft generated using ${result.model}. Please review and edit before confirming.`)
+    } catch {
+      setError('Could not connect to the parsing server. Ensure the backend is running.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const updateDraft = (id, field, value) => {
@@ -245,7 +266,7 @@ function App() {
             <div className="heading-icon note-icon" aria-hidden="true">✎</div>
             <div>
               <h2 id="note-heading">Add a transaction note</h2>
-              <p>Write naturally in English or Hinglish. Notes are not interpreted in this demo.</p>
+              <p>Write naturally in English or Hinglish. Gemma 2 parses your note through the local backend.</p>
             </div>
           </div>
           <label className="sr-only" htmlFor="transaction-note">Transaction note</label>
@@ -271,10 +292,10 @@ function App() {
           </div>
           <div className="note-actions">
             <p className="mock-disclaimer">
-              <span aria-hidden="true">ⓘ</span> Demo only — “Generate Draft” loads fixed sample entries; it does not read this note. Note interpretation and Gemma/Gemini API integration are not implemented yet.
+              <span aria-hidden="true">ⓘ</span> Your note is parsed by Gemma 2 via the local backend; review and edit the resulting draft before confirming.
             </p>
-            <button className="button button-primary" type="button" onClick={createDraft}>
-              Generate Draft <span aria-hidden="true">→</span>
+            <button className="button button-primary" type="button" onClick={createDraft} disabled={isLoading}>
+              {isLoading ? 'Parsing with Gemma...' : <>Generate Draft <span aria-hidden="true">→</span></>}
             </button>
           </div>
         </section>
@@ -289,7 +310,7 @@ function App() {
               <div className="heading-icon draft-icon" aria-hidden="true">▤</div>
               <div>
                 <h2 id="draft-heading">Draft transactions</h2>
-                <p>Sample entries only — edit and review before confirming.</p>
+                <p>Review and edit parsed entries before confirming.</p>
               </div>
             </div>
             {draft.length > 0 && <span className="count-pill">{draft.length} to review</span>}
@@ -385,7 +406,7 @@ function App() {
             <div className="empty-state">
               <span className="empty-icon" aria-hidden="true">▤</span>
               <strong>No draft entries yet</strong>
-              <span>Choose “Generate Draft” to load fixed sample entries for review.</span>
+              <span>Write or select a note, then choose “Generate Draft” to parse it for review.</span>
             </div>
           )}
         </section>
@@ -446,7 +467,7 @@ function App() {
         <footer className="footer">
           <span className="footer-brand">DukaanNote</span>
           <span>A simple hisaab for your shop.</span>
-          <span className="footer-demo">Sample data · Note interpretation and Gemma/Gemini are not implemented</span>
+          <span className="footer-demo">Notes parsed by Gemma 2 via the local backend</span>
         </footer>
       </div>
     </main>

@@ -8,13 +8,13 @@ Informal shop records can be difficult to organize and maintain digitally, espec
 
 ## Proposed solution
 
-Shopkeepers can enter transaction notes in English or Hinglish. The planned Gemma integration will extract structured transaction details into a draft that users can review before saving.
+Shopkeepers can enter transaction notes in English or Hinglish. A local backend uses Gemma 2 to extract structured transaction details into a draft that users can review before saving.
 
 ## Current features
 
 - Responsive React dashboard
 - Example-note suggestions in English and Hinglish
-- Mock draft transaction generation using sample entries
+- Gemma 2 transaction parsing through the local backend
 - Editable and removable draft entries
 - Validation before confirmation
 - Sales and purchase totals calculated from confirmed entries
@@ -26,15 +26,12 @@ React, Vite, JavaScript, CSS, and localStorage.
 
 ## Current limitations
 
-- Transaction parsing uses fixed mock data; notes are not interpreted.
-- Gemma/Gemini API integration is not implemented.
+- Transaction parsing requires the local backend and a configured Gemini API key.
 - Data is stored only in the current browser and is not synchronized or backed up.
 
 ## Planned improvements
 
-- Integrate Gemma through the Gemini API.
-- Parse transaction notes into structured drafts.
-- Improve error handling.
+- Improve parsing and error handling.
 
 ## Run locally
 
@@ -46,3 +43,9 @@ npm run dev
 ```
 
 Open the local URL printed by Vite in your browser.
+
+In a separate terminal, configure `GEMINI_API_KEY` in the environment and start the parsing backend:
+
+```bash
+node server.js
+```
